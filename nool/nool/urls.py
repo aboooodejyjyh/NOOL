@@ -7,5 +7,6 @@ urlpatterns = [
     path("inventory/", include("inventory.urls", namespace="inventory")),
     path("pos/", include("pos.urls", namespace="pos")),
     path("sales/", include("sales.urls", namespace="sales")),
+    path("customers/", include("customers.urls", namespace="customers")),
     path("", RedirectView.as_view(url="/inventory/"), name="home"),
 ]
