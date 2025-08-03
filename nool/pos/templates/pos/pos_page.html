@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}POS{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-7">
+    <h2>Products</h2>
+    <div class="input-group mb-3">
+      <input type="text" id="product-search" class="form-control" placeholder="Scan barcode or search by name...">
+    </div>
+    <div id="product-list">
+      <!-- Product search results will be displayed here -->
+    </div>
+  </div>
+  <div class="col-md-5">
+    <h2>Cart</h2>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="cart-items">
+        <!-- Cart items will be added here dynamically -->
+      </tbody>
+    </table>
+    <hr>
+    <h3>Total: <span id="cart-total">0.00</span></h3>
+    <div class="d-grid gap-2">
+      <button class="btn btn-success btn-lg" id="payment-button">Payment</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productSearchInput = document.getElementById('product-search');
+    const productListDiv = document.getElementById('product-list');
+    const cartItemsTbody = document.getElementById('cart-items');
+    const cartTotalSpan = document.getElementById('cart-total');
+
+    let cart = {}; // { productId: { name, price, quantity } }
+
+    productSearchInput.addEventListener('input', function() {
+        const query = this.value;
+        if (query.length < 2) {
+            productListDiv.innerHTML = '';
+            return;
+        }
+
+        fetch(`/inventory/api/product-search/?q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                productListDiv.innerHTML = '';
+                data.forEach(product => {
+                    const productDiv = document.createElement('div');
+                    productDiv.className = 'list-group-item list-group-item-action';
+                    productDiv.textContent = `${product.name} - $${product.price}`;
+                    productDiv.style.cursor = 'pointer';
+                    productDiv.addEventListener('click', () => {
+                        addToCart(product);
+                        productSearchInput.value = '';
+                        productListDiv.innerHTML = '';
+                    });
+                    productListDiv.appendChild(productDiv);
+                });
+            });
+    });
+
+    function addToCart(product) {
+        if (cart[product.id]) {
+            cart[product.id].quantity++;
+        } else {
+            cart[product.id] = {
+                name: product.name,
+                price: parseFloat(product.price),
+                quantity: 1
+            };
+        }
+        renderCart();
+    }
+
+    function renderCart() {
+        cartItemsTbody.innerHTML = '';
+        let total = 0;
+        for (const productId in cart) {
+            const item = cart[productId];
+            const itemTotal = item.price * item.quantity;
+            total += itemTotal;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.name}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm quantity-input" data-product-id="${productId}" value="${item.quantity}" min="1">
+                </td>
+                <td>${item.price.toFixed(2)}</td>
+                <td>${itemTotal.toFixed(2)}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm remove-item-btn" data-product-id="${productId}">X</button>
+                </td>
+            `;
+            cartItemsTbody.appendChild(tr);
+        }
+        cartTotalSpan.textContent = total.toFixed(2);
+    }
+
+    cartItemsTbody.addEventListener('change', function(event) {
+        if (event.target.classList.contains('quantity-input')) {
+            const productId = event.target.dataset.productId;
+            const newQuantity = parseInt(event.target.value);
+            if (newQuantity > 0) {
+                cart[productId].quantity = newQuantity;
+            } else {
+                delete cart[productId];
+            }
+            renderCart();
+        }
+    });
+
+    cartItemsTbody.addEventListener('click', function(event) {
+        if (event.target.classList.contains('remove-item-btn')) {
+            const productId = event.target.dataset.productId;
+            delete cart[productId];
+            renderCart();
+        }
+    });
+
+    const paymentButton = document.getElementById('payment-button');
+
+    paymentButton.addEventListener('click', function() {
+        if (Object.keys(cart).length === 0) {
+            alert('Cart is empty!');
+            return;
+        }
+
+        const saleData = {
+            cart: cart,
+            payment_method: 'cash', // This can be made dynamic later
+        };
+
+        fetch('/sales/api/finalize-sale/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(saleData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Sale completed successfully!');
+                cart = {};
+                renderCart();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An unexpected error occurred. Please try again.');
+        });
+    });
+
+});
+</script>
+{% endblock %}
