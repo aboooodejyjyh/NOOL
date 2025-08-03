@@ -1,0 +1,41 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "A modular telegram Python bot running on python3 with an sqlalchemy database.",
+  "main": "main.js",
+  "scripts": {
+    "start": "/app/node_modules/.bin/electron .",
+    "build": "/app/node_modules/.bin/electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.nool.app",
+    "productName": "NOOL",
+    "files": [
+      "main.js",
+      "preload.js",
+      "nool/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aboooodejyjyh/NOOL.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aboooodejyjyh/NOOL/issues"
+  },
+  "homepage": "https://github.com/aboooodejyjyh/NOOL#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "electron": "^37.2.5",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^8.0.4"
+  }
+}
